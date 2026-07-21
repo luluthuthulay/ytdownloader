@@ -1,6 +1,5 @@
 name: Build Flutter APK
 
-# Code အသစ်တင်တိုင်း သို့မဟုတ် ကိုယ်တိုင်နှိပ်တိုင်း အလုပ်လုပ်မည်
 on:
   push:
     branches: [ main ]
@@ -23,11 +22,10 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
-          channel: 'stable'
+          # flutter-version ကို ဖြုတ်လိုက်ပြီး stable လို့ပဲ ထားခြင်းဖြင့် အမြဲတမ်း နောက်ဆုံးပေါ် Version ကို သုံးပေးပါမည်။
+          channel: 'stable' 
 
       - name: Generate Keystore & key.properties
-        # ဤနေရာတွင် GitHub Server က Keystore ကို အလိုအလျောက် ဖန်တီးပေးပါမည်
         run: |
           mkdir -p android/app
           keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass 12345678 -keypass 12345678 -dname "CN=VidMate Clone, OU=App, O=MyCompany, L=City, S=State, C=US"
