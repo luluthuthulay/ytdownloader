@@ -1,7 +1,0 @@
-android {
-    defaultConfig {
-        // အခြား code များ...
-        minSdkVersion 21 // ဤနေရာတွင် 21 ဟုပြင်ပေးပါ
-        targetSdkVersion flutter.targetSdkVersion
-    }
-}
