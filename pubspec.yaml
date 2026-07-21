@@ -12,9 +12,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  # ဤနေရာတွင် WebView နှင့် Permission Packages များကို ထည့်သွင်းထားပါသည်
-  flutter_inappwebview: ^6.0.0
-  permission_handler: ^11.3.0
+  flutter_inappwebview: ^6.1.5
+  permission_handler: ^11.4.0
 
 dev_dependencies:
   flutter_test:
