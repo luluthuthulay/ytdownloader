@@ -1,16 +1,15 @@
-name: Build Flutter APK
+name: Build Specific ABIs APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -22,27 +21,20 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          # flutter-version ကို ဖြုတ်လိုက်ပြီး stable လို့ပဲ ထားခြင်းဖြင့် အမြဲတမ်း နောက်ဆုံးပေါ် Version ကို သုံးပေးပါမည်။
-          channel: 'stable' 
+          flutter-version: '3.44.7'
+          channel: 'stable'
 
-      - name: Generate Keystore & key.properties
+      - name: Create Keystore & Properties
         run: |
           mkdir -p android/app
-          keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass 12345678 -keypass 12345678 -dname "CN=VidMate Clone, OU=App, O=MyCompany, L=City, S=State, C=US"
-          
+          keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass 12345678 -keypass 12345678 -dname "CN=VidMate, OU=App, O=MyCompany, L=City, S=State, C=US"
           echo "storePassword=12345678" > android/key.properties
           echo "keyPassword=12345678" >> android/key.properties
           echo "keyAlias=upload" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-      - name: Install Dependencies
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Release APK
-        run: flutter build apk --release
-
-      - name: Upload APK as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: VidMate-Clone-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Build APK for arm64-v8a and armeabi-v7a
+        run: flutter build apk --release --no-shrink --target-platform android-arm,android-arm64
