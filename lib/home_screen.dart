@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,104 +12,97 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   InAppWebViewController? webViewController;
-  String currentUrl = "https://m.youtube.com"; // စစချင်း ပွင့်မည့် Web
-  double progress = 0;
-  final TextEditingController urlController = TextEditingController();
+  String currentUrl = "https://www.youtube.com";
+  bool isDownloading = false;
+  double downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    urlController.text = currentUrl;
+    requestPermissions();
   }
 
-  // ဒေါင်းလုဒ်ခလုတ် နှိပ်လိုက်လျှင် အလုပ်လုပ်မည့် Function
-  void _onDownloadClicked() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          height: 200,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "ဗီဒီယို ဒေါင်းလုဒ်လုပ်ရန်",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Text("လက်ရှိလင့်ခ်: $currentUrl"),
-              const SizedBox(height: 20),
-              const Text(
-                "မှတ်ချက် - ဤနေရာတွင် နောက်ပိုင်း yt-dlp ဖြင့်ချိတ်ဆက်ပြီး Video Quality များ (1080p, 720p, MP3) ရွေးချယ်နိုင်သော စနစ် ထည့်သွင်းပါမည်။",
-                style: TextStyle(color: Colors.red),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  // ဖုန်းထဲတွင် ဖိုင်သိမ်းဆည်းရန် ခွင့်တောင်းခြင်း
+  Future<void> requestPermissions() async {
+    var status = await Permission.storage.request();
+    if (!status.isGranted) {
+      await Permission.manageExternalStorage.request();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.redAccent,
-        title: TextField(
-          controller: urlController,
-          decoration: const InputDecoration(
-            hintText: "Search or enter URL",
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(horizontal: 10),
-            border: OutlineInputBorder(borderSide: BorderSide.none),
-          ),
-          onSubmitted: (value) {
-            String url = value;
-            if (!url.startsWith("http")) {
-              url = "https://www.google.com/search?q=$value";
-            }
-            webViewController?.loadUrl(
-                urlRequest: URLRequest(url: WebUri(url)));
-          },
-        ),
+        title: const Text("VidMate Clone - Browser"),
+        backgroundColor: Colors.red,
         actions: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.refresh),
             onPressed: () {
-              webViewController?.goBack();
+              webViewController?.reload();
             },
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(currentUrl)),
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-            },
-            onLoadStart: (controller, url) {
-              setState(() {
-                currentUrl = url.toString();
-                urlController.text = currentUrl;
-              });
-            },
-            onProgressChanged: (controller, progress) {
-              setState(() {
-                this.progress = progress / 100;
-              });
-            },
+          // Browser အပိုင်း
+          Expanded(
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(currentUrl)),
+              onWebViewCreated: (controller) {
+                webViewController = controller;
+              },
+              onLoadStop: (controller, url) {
+                setState(() {
+                  currentUrl = url.toString();
+                });
+              },
+            ),
           ),
-          if (progress < 1.0)
-            LinearProgressIndicator(value: progress, color: Colors.red),
+          
+          // အောက်ခြေမှ ဗီဒီယိုဒေါင်းလုပ်ဆွဲမည့် ခလုတ်နှင့် နေရာ
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            color: Colors.grey[200],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isDownloading)
+                  LinearProgressIndicator(value: downloadProgress),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        currentUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: isDownloading ? null : () {
+                        // ဤနေရာတွင် ဒေါင်းလုဒ်လုပ်မည့် လုပ်ဆောင်ချက်ကို ထည့်သွင်းနိုင်ပါသည်
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("ဒေါင်းလုဒ်ဆွဲရန် လင့်ခ်ကို ရယူနေပါပြီ...")),
+                        );
+                      },
+                      icon: const Icon(Icons.download),
+                      label: const Text("Download"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onDownloadClicked,
-        backgroundColor: Colors.redAccent,
-        child: const Icon(Icons.download, color: Colors.white),
       ),
     );
   }
