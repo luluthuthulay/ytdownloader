@@ -6,21 +6,24 @@ import os
 
 app = FastAPI()
 
-# ဆာဗာ စတင် Run တဲ့အခါ yt-dlp ကို အလိုအလျောက် Latest Version သို့ Update လုပ်ရန်
+# ဆာဗာ စတင်ချိန်တွင် yt-dlp နှင့် Deno (JS Runtime) ကို အလိုအလျောက် တပ်ဆင်ရန်
 try:
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"], capture_output=True, text=True, timeout=20)
-    print("yt-dlp auto-upgrade checked/completed successfully.")
+    # Render ပေါ်တွင် Deno မရှိပါက အလိုအလျောက် Download လုပ်ပြီး Install လုပ်ပေးရန် (JS Runtime Error ဖြေရှင်းရန်)
+    subprocess.run("curl -fsSL https://deno.land/install.sh | sh", shell=True, capture_output=True, text=True, timeout=30)
 except Exception as e:
-    print(f"Auto-upgrade failed: {e}")
+    print(f"Setup warning: {e}")
 
 @app.get("/")
 def home():
-    return {"message": "Render YT-DLP API with Bot Bypass & Cookie Support is running successfully!"}
+    return {"message": "Render YT-DLP API with Deno & Cookie Support is running!"}
 
 @app.get("/get-link")
 def get_video_link(url: str):
     try:
-        # yt-dlp command တည်ဆောက်ခြင်း (Bot Detection ကျော်လွှားရန် User-Agent ထည့်သွင်းထားသည်)
+        # Deno path ကို Environment ထဲသို့ ထည့်ပေးခြင်း
+        deno_path = os.path.expanduser("~/.deno/bin/deno")
+        
         cmd = [
             "yt-dlp", 
             "-j", 
@@ -28,7 +31,11 @@ def get_video_link(url: str):
             url
         ]
         
-        # GitHub Repository ထဲတွင် cookies.txt သို့မဟုတ် autocookies.txt ရှိမရှိ စစ်ဆေးပြီး Bot Bypass အတွက် ထည့်သုံးရန်
+        # Deno ရှိပါက command ထဲသို့ ထည့်ပေးရန်
+        if os.path.exists(deno_path):
+            cmd.extend(["--js-runtimes", deno_path])
+
+        # Cookie ဖိုင် ရှိမရှိ စစ်ဆေးပြီး ထည့်သုံးရန်
         cookie_path = os.path.join(os.getcwd(), "cookies.txt")
         auto_cookie_path = os.path.join(os.getcwd(), "autocookies.txt")
         
@@ -37,7 +44,6 @@ def get_video_link(url: str):
         elif os.path.exists(auto_cookie_path):
             cmd.extend(["--cookies", auto_cookie_path])
         
-        # yt-dlp ဖြင့် အချက်အလက်များ လှမ်းထုတ်ခြင်း
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         
         if result.returncode != 0:
