@@ -4,7 +4,7 @@ import json
 
 app = FastAPI()
 
-@app.get("/", methods=["GET", "HEAD"])
+@app.get("/")
 def home():
     return {"message": "Render YT-DLP API is running successfully!"}
 
